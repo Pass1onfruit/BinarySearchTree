@@ -1,0 +1,231 @@
+#include <iostream>
+//不支持 改
+//给的初始值顺序不一样，树的结构排列不一样，排列规则一样
+template <class K, class V>
+struct BSTreeNode
+{
+	BSTreeNode<K>* _left;
+	BSTreeNode<K>* _right;
+	K _key;
+	V _value;//一个容器与_key对应
+
+	BSTree(cosnt K& key)//构造函数
+		:_key (key)
+		,_value ()
+		,_left (nullptr)
+		,_right (nullptr)
+	{}
+};
+template <class K, class V>
+class BSTree
+{
+	typedef BSTreeNode<K, V> Node;
+public:
+	BSTree()
+		:_root(nullptr)
+	{}
+	~BSTree()
+	{
+		//用递归删除
+	}
+
+	//               引用
+	bool _InsertR(Node*& root, const K& key, const V& value)//递归版本的插入
+	{
+		if (root == nullptr)//空的插入即可
+		{
+			root = new Node(key, value);
+		}
+		if (root->_key > key)
+		{
+			return _InsertR(root->_left, key);
+		}
+		else if (root->_key < key)
+		{
+			return _InsertR(root->_right, key);
+		}
+		else//相等的情况，已有相同数，无法插入
+			return false;
+	}
+	bool InsertR(const K& key, const V& value)//多写了一个value
+	{
+		return _InsertR(_root, key);
+	}
+
+	bool Insert(const K& key)// 非递归的插入
+	{
+		if (_root == nullptr)
+		{
+			_root = new Node(key);//内存不够会报异常
+			return true;
+		}
+		Node* parent = nullptr;//parent走在cur后面，每次把cur的值给给parent，使得走到空节点插入时可以和parent（上一个节点）链接起来
+		Node* cur = _root;
+		while (cur)//一直找到空的为止
+		{
+			if (cur->_key < key)
+			{
+				parent = cur;
+				cur = cur->_right;
+			}
+			else if (cur->_key > key)
+			{
+				parent = cur;
+				cur = cur->_left;
+			}
+			else
+				return false;//只有在已经存在插入值的情况下才会失败，该树无重复值
+		}
+		cur = new Node(key);//在空节点插入
+		if (parent->_key < key)
+			parent->_right = cur;
+		else
+			parent->_left = cur;
+		return true;
+	}
+
+	//查找的时候不需要写value
+	Node* FindR(const K& key)//递归版本的查找
+	{
+		return _FindR(_root, _key);
+	}
+	Node* _FindR(Node* root, const K& key)
+	{
+		if (root == nullptr)//为空则找不到//有可能是整棵树为空，也可能只是子树为空
+			return nullptr;
+		if (root->_key == _key)
+			return root;
+		else if (root->_key < key)
+			return _FindR(root->_right, key);
+		else if (root->_key > key)
+			return _FindR(root->_left, key);
+	}
+
+	Node* Find(const K& key)//查找
+	{
+		Node* cur = _root;
+		while (cur)//一直找到空
+		{
+			if (key > cur->_key)
+				cur = cur->_right;
+			else if (key < cur->_key)
+				cur = cur->_right;
+			else
+				return cur;//找到了
+		}
+		return nullptr;
+	}
+
+	//不好直接删除///难点
+	bool Erase(const K& key)//不能用Find找，会让上一级指向目标的会变成野指针，应让上一级指向空
+	{
+		Node* parent = nullptr;//parent紧随其后
+		Node* cur = _root;
+		while (cur)
+		{
+			if (cur->_key < key)
+			{
+				parent = cur;
+				cur = cur->_right;
+			}
+			else if (cur->_key > key)
+			{
+				parent = cur;
+				cur = cur->_left;
+			}
+			else//找到了，删除
+			{
+				Node* del = cur;//左右都不为空的情况要删除的节点
+				if (cur->_right == nullptr)//cur左为空，需要parent指向cur->_right
+				{
+					if (parent == nullptr)//如果没有父节点
+					{
+						_root = cur->_right;
+					}
+					if (parent->_left == cur)//因为不知到cur是parent的左子树还是右子树，需要先比较确定，让parent指向cur子节点
+					{
+						parent->_left = cur->_right;
+					}
+					else
+					{
+						parent->_right = cur->_right;
+					}
+				}
+				else if (cur->_left == nullptr)//cur右为空, 需要parent指向cur->_left
+				{
+					if (parent == nullptr)
+					{
+						_root = cur->_left;
+					}
+					if (parent->_left == cur)
+					{
+						parent->_left = cur->_left;
+					}
+					else
+					{
+						parent->_right = cur->_left;
+					}
+				}
+				else//cur左右都不为空的情况//删除节点后应该用大于节点的右节点补上
+				{
+					Node* lessParent = cur;//rightLess的上一个节点//不能给空nullptr
+					Node* rightLess = cur->_right;//最右节点//大于所有左节点小于其他右节点
+					while (rightLess->_left)
+					{
+						lessParent = rightLess;
+						rightLess = rightLess->_left;
+					}
+					cur->_key = rightLess->_key;
+					del = rightLess;
+					if (lessParent->_right == rightLess)
+					{
+						lessParent->_left = rightLess->_right;
+					}
+					else
+					{
+						lessParent->_right = rightLess->_right;
+					}
+					delete del;
+					return true;
+				}
+			}
+		}
+	}
+
+	void InOrder()//中序遍历
+	{
+		InOrder(_root);
+		cout << endl;
+	}
+	void _InOrder(Node* root)
+	{
+		if (root == nullptr)
+			return;
+		_InOrder(root->_left);
+		cout << root->_key << " ";
+		_InOrder(root->_right);
+	}
+
+	void Test()
+	{
+		BSTree<string, string> dict;
+		dict.InsertR("A", "1");//两个容器相互对应，可以用key找到对应的value
+		dict.InsertR("B", "2");
+		dict.InsertR("C", "3");
+		dict.InsertR("D", "4");
+		dict.InsertR("E", "5");
+
+		string str;
+		while (cin >> str)
+		{
+			BSTree<string, string>* ret = dict.FindR();
+		}
+		if (ret)
+		{
+			cout << str << ":" << ret->value << endl;
+		}
+	}
+
+private:
+	Node* _root;
+};
